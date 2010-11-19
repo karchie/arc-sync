@@ -1,0 +1,23 @@
+Who can write this program in the fewest lines of code in the language
+of your choice*?
+ 
+arc-sync -h xnat.host.org -u user -p pass -m MR -proj MY_PROJ -l /my/local/archive
+ 
+- Get list of MR sessions in MY_PROJ.
+
+- Compare list of sessions with existing directories in /my/local/archive.
+
+- Download sessions that aren't listed as directories in
+  /my/local/archive to /my/local/archive
+ 
+Everyone needs to try, submissions due on Monday and will be reviewed
+at lab meeting. I can do it in 10 lines, and I'm a crappy
+programmer. Whoever gets it done in fewest lines of code gets a $100
+bonus. Anyone who makes their code sync specific sequence types gets
+extra kudos.
+ 
+-Dan
+ 
+* The language of your choice must be Perl, Python, or shell. Possibly
+  something else if you prove Avi can run it without instruction. I'm
+  guessing Perl is most compact but feel free to prove me wrong.
