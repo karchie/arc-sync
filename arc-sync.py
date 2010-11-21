@@ -5,5 +5,4 @@ opts=dict(getopt.getopt(sys.argv[1:], 'h:u:p:m:l:', ['proj='])[0])
 
 def get(url): return u.urlopen(u.Request(url=opts['-h']+url, headers={'Authorization':'Basic '+base64.encodestring('%(-u)s:%(-p)s' % opts).strip()})).read()
 
-for expt in filter(lambda x: x['label'] not in os.listdir(opts['-l']), json.loads(get('/REST/projects/%(--proj)s/experiments' % opts))['ResultSet']['Result']) :
-        z.ZipFile(sio.StringIO(get('%(URI)s/scans/ALL/files?format=zip' % expt)), 'r').extractall(opts['-l'])
+map(lambda e: z.ZipFile(sio.StringIO(get('%(URI)s/scans/ALL/files?format=zip' % e)), 'r').extractall(opts['-l']), filter(lambda x: x['label'] not in os.listdir(opts['-l']), json.loads(get('/REST/projects/%(--proj)s/experiments' % opts))['ResultSet']['Result']))
