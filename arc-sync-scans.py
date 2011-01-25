@@ -1,5 +1,21 @@
 #!/usr/bin/python
-import base64, getopt, getpass, json, os, re, StringIO as sio, sys, urllib2 as u, zipfile as z
+# arc-sync-scans.py
+# Copyright (c) 2010,2011 Washington University
+# Author: Kevin A. Archie <karchie@wustl.edu>
+#
+# Usage:
+# arc-sync-scans \
+#   -h ${XNAT_BASE_URL}  \
+#   --proj ${XNAT_PROJECT} \    (NOTE preceding double dash)
+#   -u ${XNAT_USER}      \
+#   -p ${XNAT_PASSWORD}  \
+#   -m ${REQUESTED_MODALITIES} \
+#      (-m is optional; multiple values separated by commas) \
+#   -l ${LOCAL_CACHE_DIR} \
+#   -s ${REQUESTED_SCAN_TYPES} \
+#      (-t is optional; multiple values separated by commas)
+
+import base64, getopt, getpass, json, os, re, StringIO as sio, string, sys, urllib2 as u, zipfile as z
 
 # Read and parse command-line arguments
 optsl,args = getopt.getopt(sys.argv[1:], 'h:u:p:m:l:s:', ['proj='])
@@ -15,10 +31,18 @@ passwd=opts['-p'] if '-p' in opts else getpass.getpass('password: ')
 # Build HTTP header for Basic Authorization
 auth={'Authorization':'Basic '+base64.encodestring(user+':'+passwd).strip()}
 
+# Requested modalities
+if '-m' in opts:
+    xsitypes='xsiType=' + string.join(
+        map(lambda m: 'xnat:' + m.lower() + 'SessionData',
+            opts['-m'].split(','))) + '&'
+else:
+    xsitypes=''
+
 # Local data cache
 cache=opts['-l']
 
-# Scan types
+# Requested scan types
 types=opts['-s'] if '-s' in opts else 'ALL'
 
 # What sessions are already (at least partially) present in data cache?
