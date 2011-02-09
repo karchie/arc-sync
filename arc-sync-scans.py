@@ -81,6 +81,7 @@ the given experiment."""
 
 # main
 for expt in getJSONResults('/REST/projects/%(--proj)s/experiments?format=json&columns=project,subject_label,label' % opts):
+    expt['project']=opts['--proj']
     label = expt['label']
     if label not in existing:
         getScanFiles(expt, types)
