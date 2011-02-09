@@ -9,16 +9,19 @@
 #   --proj ${XNAT_PROJECT} \    (NOTE preceding double dash)
 #   -u ${XNAT_USER}      \
 #   -p ${XNAT_PASSWORD}  \
+#      (-u and -p are optional; user will be prompted if these are omitted)
 #   -m ${REQUESTED_MODALITIES} \
-#      (-m is optional; multiple values separated by commas) \
+#      (-m is optional; multiple values separated by commas)
 #   -l ${LOCAL_CACHE_DIR} \
+#      (-l is optional; defaults to ${PWD}/${XNAT_PROJECT})
 #   -s ${REQUESTED_SCAN_TYPES} \
 #      (-t is optional; multiple values separated by commas)
+#   -v (optional, displays information about scans being retrieved)
 
 import base64, getopt, getpass, json, os, re, StringIO as sio, string, sys, urllib2 as u, zipfile as z
 
 # Read and parse command-line arguments
-optsl,args = getopt.getopt(sys.argv[1:], 'h:u:p:m:l:s:', ['proj='])
+optsl,args = getopt.getopt(sys.argv[1:], 'h:u:p:m:l:s:v', ['proj='])
 opts=dict(optsl)
 
 # XNAT base URL can be either -h or the first non-option argument
@@ -27,6 +30,8 @@ base=opts['-h'] if '-h' in opts else args[0]
 # XNAT user/pass can be -u/-p or prompted
 user=opts['-u'] if '-u' in opts else raw_input('username: ')
 passwd=opts['-p'] if '-p' in opts else getpass.getpass('password: ')
+
+verbose='-v' in opts
 
 # Build HTTP header for Basic Authorization
 auth={'Authorization':'Basic '+base64.encodestring(user+':'+passwd).strip()}
@@ -39,8 +44,12 @@ if '-m' in opts:
 else:
     xsitypes=''
 
-# Local data cache
-cache=opts['-l']
+# Local data cache; create if it doesn't already exist
+cache=opts['-l'] if '-l' in opts else opts['--proj']
+try:
+    os.makedirs(cache)
+except OSError:
+    pass
 
 # Requested scan types
 types=opts['-s'] if '-s' in opts else 'ALL'
@@ -63,12 +72,15 @@ def getJSONResults(uri):
 def getScanFiles(expt, scans):
     """Retrieves the data files for the given scan names or types from
 the given experiment."""
-    args = {'URI':expt['URI'], 'scans':scans}
+    args = {'URI':'/REST/projects/%(project)s/subjects/%(subject_label)s/experiments/%(label)s' % expt,
+            'scans':scans}
+    if verbose:
+        print 'Getting %(URI)s: %(scans)s' % args
     z.ZipFile(sio.StringIO(get('%(URI)s/scans/%(scans)s/files?format=zip' % args)), 'r').extractall(cache)
 
 
 # main
-for expt in getJSONResults('/REST/projects/%(--proj)s/experiments' % opts):
+for expt in getJSONResults('/REST/projects/%(--proj)s/experiments?format=json&columns=project,subject_label,label' % opts):
     label = expt['label']
     if label not in existing:
         getScanFiles(expt, types)
