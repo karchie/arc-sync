@@ -38,11 +38,10 @@ auth={'Authorization':'Basic '+base64.encodestring(user+':'+passwd).strip()}
 
 # Requested modalities
 if '-m' in opts:
-    xsitypes='xsiType=' + string.join(
-        map(lambda m: 'xnat:' + m.lower() + 'SessionData',
-            opts['-m'].split(','))) + '&'
+    xsis = map(lambda m: 'xsiType=xnat:' + m.lower() + 'SessionData&',
+                   opts['-m'].split(','))
 else:
-    xsitypes=''
+    xsis=['']
 
 # Local data cache; create if it doesn't already exist
 cache=opts['-l'] if '-l' in opts else opts['--proj']
@@ -80,14 +79,16 @@ the given experiment."""
 
 
 # main
-for expt in getJSONResults('/REST/projects/%(--proj)s/experiments?format=json&columns=project,subject_label,label' % opts):
-    expt['project']=opts['--proj']
-    label = expt['label']
-    if label not in existing:
-        getScanFiles(expt, types)
-    else:
-        for scan in getJSONResults('%(URI)s/scans' % expt):
-            if types == 'ALL' or scan['type'] in typelist:
-                name=re.sub(r'[^\w\-]', '_', "%(ID)s-%(type)s" % scan)
-                if name not in os.listdir(cache+'/'+label+'/scans'):
-                    getScanFiles(expt, scan['ID'])
+for xsi in xsis:
+    opts['xsi']=xsi
+    for expt in getJSONResults('/REST/projects/%(--proj)s/experiments?%(xsi)sformat=json&columns=subject_label,label' % opts):
+        expt['project']=opts['--proj']
+        label = expt['label']
+        if label not in existing:
+            getScanFiles(expt, types)
+        else:
+            for scan in getJSONResults('%(URI)s/scans' % expt):
+                if types == 'ALL' or scan['type'] in typelist:
+                    name=re.sub(r'[^\w\-]', '_', "%(ID)s-%(type)s" % scan)
+                    if name not in os.listdir(cache+'/'+label+'/scans'):
+                        getScanFiles(expt, scan['ID'])
