@@ -18,7 +18,7 @@
 #      (-t is optional; multiple values separated by commas)
 #   -v (optional, displays information about scans being retrieved)
 
-import base64, getopt, getpass, json, os, re, StringIO as sio, string, sys, urllib2 as u, zipfile as z
+import base64, getopt, getpass, json, os, re, shutil, string, sys, urllib2 as u, zipfile as z
 
 # Read and parse command-line arguments
 optsl,args = getopt.getopt(sys.argv[1:], 'h:u:p:m:l:s:v', ['proj='])
@@ -62,11 +62,16 @@ typelist=types.split(',')
 
 def get(uri):
     """Retrieves the resource text from the given URI on the named host."""
-    return u.urlopen(u.Request(url=base+uri, headers=auth)).read()
+    return u.urlopen(u.Request(url=base+uri, headers=auth))
+
+def get_to_fh(uri, fh):
+    """Copies the resource text from the given URI to the file handle."""
+    uh = u.urlopen(u.Request(url=base+uri, headers=auth))
+    shutil.copyfileobj(uh, fh)
 
 def getJSONResults(uri):
     """Retrieves the Result array from an XNAT JSON search result."""
-    return json.loads(get(uri))['ResultSet']['Result']
+    return json.load(get(uri))['ResultSet']['Result']
 
 def getScanFiles(expt, scans):
     """Retrieves the data files for the given scan names or types from
@@ -75,7 +80,14 @@ the given experiment."""
             'scans':scans}
     if verbose:
         print 'Getting %(URI)s: %(scans)s' % args
-    z.ZipFile(sio.StringIO(get('%(URI)s/scans/%(scans)s/files?format=zip' % args)), 'r').extractall(cache)
+    zfh = os.tmpfile()
+    try:
+        get_to_fh('%(URI)s/scans/%(scans)s/files?format=zip' % args, zfh)
+        zfh.seek(0, os.SEEK_SET)
+        z.ZipFile(zfh, 'r').extractall(cache)
+    finally:
+        zfh.close()
+
 
 
 # main
